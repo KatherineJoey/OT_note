@@ -1,11 +1,11 @@
-// Sample descriptions (replace with full mappings)
+// ICD and CPT descriptions
 const ICD_DESCRIPTIONS = {
   'F84.0': 'Autism Spectrum Disorder',
   'F82.0': 'Specific developmental disorder for motor function',
   'R27.9': 'Unspecified lack of coordination',
   'Z74.1': 'Need for assistance with personal care',
   'Z73.4': 'Inadequate social skills',
-  // add more ICD codes as needed
+  // Add more ICD codes here
 };
 
 const CPT_DESCRIPTIONS = {
@@ -13,25 +13,55 @@ const CPT_DESCRIPTIONS = {
   97535: 'Self-care training',
   97112: 'Neuromuscular re-education',
   97110: 'Therapeutic Exercises',
-  // add more CPT codes as needed
+  // Add more CPT codes here
 };
 
-// PDF generation
-downloadBtn.addEventListener('click', async () => {
-  const data = collectData();
+// Ensure download button exists
+const downloadBtn = document.getElementById('downloadBtn');
+if (!downloadBtn)
+  throw new Error(
+    'Download button not found. Add an element with id="downloadBtn"'
+  );
 
+// Helper: Load image as DataURL
+async function loadImageAsDataURL(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// Helper: Add new page if needed
+function addPageIfNeeded(doc, y, margin, lineHeight = 14) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  if (y + lineHeight > pageHeight - margin) {
+    doc.addPage();
+    return margin;
+  }
+  return y;
+}
+
+// Download PDF
+downloadBtn.addEventListener('click', async () => {
+  const data = collectData(); // Make sure this function returns expected fields
+
+  // Prompt for patient name if not set
   if (!data.patientName) {
-    if (
-      confirm(
-        'Patient name not set. PDF will omit the name unless you set it now. Set it now?'
-      )
-    ) {
-      const name = prompt("Enter patient's full name (private):", '');
-      if (name === null) return;
-      const t = name.trim();
-      if (t) {
-        sessionStorage.setItem(STORAGE_KEY, t);
-        data.patientName = t;
+    if (confirm('Patient name not set. PDF will omit the name. Set now?')) {
+      const name = prompt("Enter patient's full name:", '');
+      if (name !== null && name.trim()) {
+        sessionStorage.setItem('patientName', name.trim());
+        data.patientName = name.trim();
       }
     }
   }
@@ -40,42 +70,43 @@ downloadBtn.addEventListener('click', async () => {
   const margin = 40;
   let y = margin;
   const lineHeight = 14;
-  const pageW = doc.internal.pageSize.getWidth();
-  const usableW = pageW - margin * 2;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const usableWidth = pageWidth - margin * 2;
 
-  // Load logo
+  // Load logo (optional)
   let logoData = null;
   try {
     logoData = await loadImageAsDataURL('logo.png');
   } catch (e) {
-    console.warn('Logo not found', e);
+    console.warn('Logo not loaded:', e);
   }
 
-  // Header + logo
+  // Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
   if (logoData) {
     const img = new Image();
     img.src = logoData;
     await new Promise((res) => (img.onload = res));
-    const logoW = 80;
-    const logoH = (img.naturalHeight / img.naturalWidth) * logoW;
-    doc.addImage(logoData, 'PNG', margin, y, logoW, logoH);
+    const logoWidth = 80;
+    const logoHeight = (img.naturalHeight / img.naturalWidth) * logoWidth;
+    doc.addImage(logoData, 'PNG', margin, y, logoWidth, logoHeight);
 
-    const textY = y + logoH / 2 + 4;
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
     doc.text(
       'Sensabilities Occupational Therapy',
-      margin + logoW + 16,
-      textY - 6
+      margin + logoWidth + 16,
+      y + logoHeight / 2
     );
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('OT Session Note', margin + logoW + 16, textY + 6);
-
-    y += logoH + 10;
+    doc.text(
+      'OT Session Note',
+      margin + logoWidth + 16,
+      y + logoHeight / 2 + 14
+    );
+    y += logoHeight + 10;
   } else {
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
     doc.text('Sensabilities Occupational Therapy', margin, y);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -84,111 +115,95 @@ downloadBtn.addEventListener('click', async () => {
   }
 
   // Patient info
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Patient: ', margin, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.patientName || '(not provided)', margin + 48, y);
-  y += lineHeight;
-  doc.setFont('helvetica', 'bold');
-  doc.text('DOB:', margin, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.dob || '', margin + 34, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Age:', margin + 170, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.age || '', margin + 200, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Diagnosis:', margin + 300, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.diagnosis || '', margin + 360, y);
-  y += lineHeight + 6;
-  doc.setFont('helvetica', 'bold');
-  doc.text('Date of Service:', margin, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.dateService || '', margin + 92, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Location:', margin + 220, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.location || '', margin + 280, y);
-  y += lineHeight + 8;
-
-  // SUBJECTIVE
-  doc.setFont('helvetica', 'bold');
-  doc.text('SUBJECTIVE', margin, y);
-  y += lineHeight;
-  doc.setFont('helvetica', 'normal');
-  let wrapped = doc.splitTextToSize(data.subjective || '(none)', usableW);
-  doc.text(wrapped, margin, y);
-  y += wrapped.length * lineHeight + 8;
-  y = addPageIfNeeded(doc, y, margin);
-
-  // OBJECTIVE
-  doc.setFont('helvetica', 'bold');
-  doc.text('OBJECTIVE', margin, y);
-  y += lineHeight;
-  for (let i = 0; i < data.objectives.length; i++) {
-    const row = data.objectives[i];
-    if (!row.cpt && !row.notes) continue;
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, y - 6, usableW, 18, 'F');
+  const infoPairs = [
+    ['Patient:', data.patientName || '(not provided)'],
+    ['DOB:', data.dob || ''],
+    ['Age:', data.age || ''],
+    ['Diagnosis:', data.diagnosis || ''],
+    ['Date of Service:', data.dateService || ''],
+    ['Location:', data.location || ''],
+  ];
+  let xOffset = margin;
+  for (let [label, value] of infoPairs) {
     doc.setFont('helvetica', 'bold');
-    doc.text(`Objective ${i + 1}`, margin + 4, y + 6);
-    y += 20;
-
-    // CPT + units side by side
-    doc.setFont('helvetica', 'bold');
-    doc.text('CPT:', margin, y);
+    doc.text(label, xOffset, y);
     doc.setFont('helvetica', 'normal');
-    const cptText = row.cpt
-      ? `${row.cpt}: ${CPT_DESCRIPTIONS[row.cpt] || ''}`
-      : '( )';
-    doc.text(cptText, margin + 34, y);
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Units:', margin + 300, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(row.unit ? `x ${row.unit} unit(s)` : '( )', margin + 340, y);
-    y += lineHeight;
-
-    const noteWrapped = doc.splitTextToSize(
-      row.notes || '(no notes)',
-      usableW - 12
-    );
-    doc.text(noteWrapped, margin + 6, y);
-    y += noteWrapped.length * lineHeight + 8;
-    y = addPageIfNeeded(doc, y, margin);
+    doc.text(value, xOffset + label.length * 6, y); // Rough spacing
+    if (label === 'Diagnosis:') y += lineHeight; // New line after some fields
+    if (label === 'Location:') y += lineHeight + 8;
   }
 
-  // ASSESSMENT
-  doc.setFont('helvetica', 'bold');
-  doc.text('ASSESSMENT', margin, y);
-  y += lineHeight;
-  doc.setFont('helvetica', 'normal');
-  wrapped = doc.splitTextToSize(data.assessment || '(none)', usableW);
-  doc.text(wrapped, margin, y);
-  y += wrapped.length * lineHeight + 8;
-  y = addPageIfNeeded(doc, y, margin);
+  // Sections: SUBJECTIVE, OBJECTIVE, ASSESSMENT, PLAN
+  const sections = ['subjective', 'objectives', 'assessment', 'plan'];
+  for (let section of sections) {
+    if (section !== 'objectives') {
+      doc.setFont('helvetica', 'bold');
+      doc.text(section.toUpperCase(), margin, y);
+      y += lineHeight;
+      doc.setFont('helvetica', 'normal');
+      const text = data[section] || '(none)';
+      const wrapped = doc.splitTextToSize(text, usableWidth);
+      doc.text(wrapped, margin, y);
+      y += wrapped.length * lineHeight + 8;
+      y = addPageIfNeeded(doc, y, margin);
+    } else {
+      // OBJECTIVES table
+      doc.setFont('helvetica', 'bold');
+      doc.text('OBJECTIVE', margin, y);
+      y += lineHeight;
+      if (data.objectives && data.objectives.length) {
+        data.objectives.forEach((row, i) => {
+          if (!row.cpt && !row.notes) return;
+          doc.setFillColor(240, 240, 240);
+          doc.rect(margin, y - 6, usableWidth, 18, 'F');
+          doc.text(`Objective ${i + 1}`, margin + 4, y + 6);
+          y += 20;
 
-  // PLAN
-  doc.setFont('helvetica', 'bold');
-  doc.text('PLAN', margin, y);
-  y += lineHeight;
-  doc.setFont('helvetica', 'normal');
-  wrapped = doc.splitTextToSize(data.plan || '(none)', usableW);
-  doc.text(wrapped, margin, y);
-  y += wrapped.length * lineHeight + 8;
-  y = addPageIfNeeded(doc, y, margin);
+          doc.setFont('helvetica', 'bold');
+          doc.text('CPT:', margin, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(
+            row.cpt ? `${row.cpt}: ${CPT_DESCRIPTIONS[row.cpt] || ''}` : '( )',
+            margin + 34,
+            y
+          );
 
-  // ICD Codes with description
+          doc.setFont('helvetica', 'bold');
+          doc.text('Units:', margin + 300, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(row.unit ? `x ${row.unit} unit(s)` : '( )', margin + 340, y);
+          y += lineHeight;
+
+          const noteWrapped = doc.splitTextToSize(
+            row.notes || '(no notes)',
+            usableWidth - 12
+          );
+          doc.text(noteWrapped, margin + 6, y);
+          y += noteWrapped.length * lineHeight + 8;
+          y = addPageIfNeeded(doc, y, margin);
+        });
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.text('(none)', margin, y);
+        y += lineHeight;
+      }
+    }
+  }
+
+  // ICD Codes
   doc.setFont('helvetica', 'bold');
   doc.text('ICD Codes:', margin, y);
   y += lineHeight;
   doc.setFont('helvetica', 'normal');
   if (data.icdCodes && data.icdCodes.length) {
     data.icdCodes.forEach((code) => {
-      const desc = ICD_DESCRIPTIONS[code] || '(desc not found)';
-      doc.text(`- ${code}: ${desc}`, margin + 10, y);
+      doc.text(
+        `- ${code}: ${ICD_DESCRIPTIONS[code] || '(desc not found)'}`,
+        margin + 10,
+        y
+      );
       y += lineHeight;
       y = addPageIfNeeded(doc, y, margin);
     });
@@ -196,9 +211,8 @@ downloadBtn.addEventListener('click', async () => {
     doc.text('(none selected)', margin + 10, y);
     y += lineHeight;
   }
-  y += 6;
 
-  // CPT codes under ICD
+  // CPT Codes summary
   doc.setFont('helvetica', 'bold');
   doc.text('CPT Codes:', margin, y);
   y += lineHeight;
@@ -206,9 +220,14 @@ downloadBtn.addEventListener('click', async () => {
   if (data.objectives && data.objectives.length) {
     data.objectives.forEach((row) => {
       if (!row.cpt) return;
-      const desc = CPT_DESCRIPTIONS[row.cpt] || '(desc not found)';
       const unitText = row.unit ? `x ${row.unit} unit(s)` : '( )';
-      doc.text(`- ${row.cpt}: ${desc} | ${unitText}`, margin + 10, y);
+      doc.text(
+        `- ${row.cpt}: ${
+          CPT_DESCRIPTIONS[row.cpt] || '(desc not found)'
+        } | ${unitText}`,
+        margin + 10,
+        y
+      );
       y += lineHeight;
       y = addPageIfNeeded(doc, y, margin);
     });
@@ -227,15 +246,19 @@ downloadBtn.addEventListener('click', async () => {
   doc.text(`Date: ${data.signDate || ''}`, margin + 300, y);
   y += lineHeight;
 
-  // page number
-  if (data.pageNum)
+  // Page number
+  if (data.pageNum) {
     doc.text(data.pageNum, margin, doc.internal.pageSize.getHeight() - margin);
+  }
 
   // Save PDF
-  const safe = (data.patientName || 'no_name').replace(/[^a-z0-9_\-]/gi, '_');
+  const safeName = (data.patientName || 'no_name').replace(
+    /[^a-z0-9_\-]/gi,
+    '_'
+  );
   const now = new Date();
-  const fname = `OT_session_${safe}_${now.getFullYear()}-${String(
+  const fileName = `OT_session_${safeName}_${now.getFullYear()}-${String(
     now.getMonth() + 1
   ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.pdf`;
-  doc.save(fname);
+  doc.save(fileName);
 });
