@@ -9,71 +9,6 @@ const clearNameBtn = document.getElementById('clearNameBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const previewBtn = document.getElementById('previewBtn');
 
-const interventionContainer = document.getElementById('interventionCheckboxes');
-const selectAllInterventionsBtn = document.getElementById(
-  'selectAllInterventions'
-);
-const clearAllInterventionsBtn = document.getElementById(
-  'clearAllInterventions'
-);
-
-// Intervention list
-const INTERVENTIONS = [
-  'Fine motor play',
-  'Sensorimotor play',
-  'Core strengthening activities',
-  'Simulated self-care routines',
-  'Turn-taking & social/reciprocal play',
-  'Community / family routines (discussed)',
-  'Pretend play / imitation',
-  'Reading / books',
-  'Songs and nursery rhymes',
-  'Hygiene-related routines',
-  'Eating-related routines',
-  'Crossing the midline activities',
-  'Stretching exercises for upper extremities',
-  'Weight bearing / weight shifting activities',
-  'Parent/caregiver coaching & education',
-  'Adaptive sensory strategies',
-  'Floor time / play-based intervention',
-  'Environmental modifications / engineering',
-  'Behavior strategies (redirection, reinforcement, praise)',
-  'Language modeling',
-  'Physical prompting (hands-on, gestures)',
-  'Modeling / demonstration of tasks',
-  'Predictable routines & transitions',
-  'Increased opportunities for skill practice',
-];
-
-// populate interventions
-(function buildInterventions() {
-  INTERVENTIONS.forEach((name) => {
-    const lbl = document.createElement('label');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.value = name;
-    lbl.appendChild(cb);
-    lbl.appendChild(document.createTextNode(name));
-    interventionContainer.appendChild(lbl);
-  });
-})();
-
-// select / clear controls
-document
-  .getElementById('selectAllInterventions')
-  .addEventListener('click', () => {
-    interventionContainer
-      .querySelectorAll('input[type="checkbox"]')
-      .forEach((cb) => (cb.checked = true));
-  });
-document
-  .getElementById('clearAllInterventions')
-  .addEventListener('click', () => {
-    interventionContainer
-      .querySelectorAll('input[type="checkbox"]')
-      .forEach((cb) => (cb.checked = false));
-  });
-
 // Name storage
 (function loadName() {
   const v = sessionStorage.getItem(STORAGE_KEY);
@@ -123,11 +58,6 @@ function collectData() {
     .map((s) => s.value)
     .filter((v) => v);
 
-  // interventions
-  const checked = Array.from(
-    interventionContainer.querySelectorAll('input[type="checkbox"]:checked')
-  ).map((cb) => cb.value);
-
   return {
     patientName: patientHidden.value || '',
     dob: document.getElementById('dob').value,
@@ -143,9 +73,6 @@ function collectData() {
     assessment: document.getElementById('assessment').value,
     plan: document.getElementById('plan').value,
     icdCodes: icdSelects,
-    interventions: checked,
-    interventionNotes: document.getElementById('interventionNotes').value,
-    progress: document.getElementById('progress').value,
     totalTime: document.getElementById('totalTime').value,
     signature: document.getElementById('signature').value,
     signDate: document.getElementById('signDate').value,
@@ -158,7 +85,6 @@ function loadImageAsDataURL(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      // draw into canvas
       const canvas = document.createElement('canvas');
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
@@ -217,18 +143,13 @@ downloadBtn.addEventListener('click', async () => {
   try {
     logoData = await loadImageAsDataURL('logo.png');
   } catch (e) {
-    console.warn(
-      'Could not load logo.png for PDF header. Make sure logo.png is in the same folder.',
-      e
-    );
+    console.warn('Could not load logo.png for PDF header.', e);
   }
 
   // Header (logo + clinic name)
   if (logoData) {
-    // scale logo to width ~80pt while preserving aspect ratio
     const tempImg = new Image();
     tempImg.src = logoData;
-    // default placement
     const logoW = 80;
     const logoH =
       (80 * (tempImg.naturalHeight || 1)) / (tempImg.naturalWidth || 1);
@@ -249,6 +170,7 @@ downloadBtn.addEventListener('click', async () => {
   }
   y += 60;
 
+  // Patient info
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('Patient: ', margin, y);
@@ -295,17 +217,16 @@ downloadBtn.addEventListener('click', async () => {
   y += wrapped.length * lineHeight + 8;
   y = addPageIfNeeded(doc, y, margin);
 
-  // OBJECTIVE: each objective row with CPT + units + notes
+  // OBJECTIVE
   doc.setFont('helvetica', 'bold');
   doc.text('OBJECTIVE', margin, y);
   y += lineHeight;
 
   for (let i = 0; i < data.objectives.length; i++) {
     const row = data.objectives[i];
-    if (!row.cpt && !row.notes) continue; // skip blank rows
-    // colored mini-header for each objective
+    if (!row.cpt && !row.notes) continue;
     doc.setFillColor(240, 240, 240);
-    doc.rect(margin, y - 6, usableW, 18, 'F'); // light block as separator
+    doc.rect(margin, y - 6, usableW, 18, 'F');
     doc.setFont('helvetica', 'bold');
     doc.text(`Objective ${i + 1}`, margin + 4, y + 6);
     y += 20;
@@ -313,17 +234,14 @@ downloadBtn.addEventListener('click', async () => {
     doc.setFont('helvetica', 'bold');
     doc.text('CPT:', margin, y);
     doc.setFont('helvetica', 'normal');
-    const cptLabel = row.cpt ? `${row.cpt}` : '( )';
-    doc.text(cptLabel, margin + 34, y);
+    doc.text(row.cpt || '( )', margin + 34, y);
 
     doc.setFont('helvetica', 'bold');
     doc.text('Units:', margin + 120, y);
     doc.setFont('helvetica', 'normal');
-    const unitLabel = row.unit ? `x ${row.unit} unit(s)` : '( )';
-    doc.text(unitLabel, margin + 168, y);
+    doc.text(row.unit ? `x ${row.unit} unit(s)` : '( )', margin + 168, y);
     y += lineHeight;
 
-    // notes
     doc.setFont('helvetica', 'normal');
     const noteWrapped = doc.splitTextToSize(
       row.notes || '(no notes)',
@@ -354,12 +272,12 @@ downloadBtn.addEventListener('click', async () => {
   y += wrapped.length * lineHeight + 8;
   y = addPageIfNeeded(doc, y, margin);
 
-  // ICD codes (print only selected)
+  // ICD codes
   doc.setFont('helvetica', 'bold');
   doc.text('ICD Codes:', margin, y);
   y += lineHeight;
   doc.setFont('helvetica', 'normal');
-  if (data.icdCodes && data.icdCodes.length) {
+  if (data.icdCodes.length) {
     data.icdCodes.forEach((code) => {
       doc.text('- ' + code, margin + 10, y);
       y += lineHeight;
@@ -371,45 +289,6 @@ downloadBtn.addEventListener('click', async () => {
   }
   y += 6;
 
-  // INTERVENTIONS (only selected)
-  doc.setFont('helvetica', 'bold');
-  doc.text('Interventions:', margin, y);
-  y += lineHeight;
-  doc.setFont('helvetica', 'normal');
-  if (data.interventions && data.interventions.length) {
-    data.interventions.forEach((it) => {
-      const lines = doc.splitTextToSize('- ' + it, usableW - 10);
-      doc.text(lines, margin + 8, y);
-      y += lines.length * lineHeight;
-      y = addPageIfNeeded(doc, y, margin);
-    });
-  } else {
-    doc.text('(none selected)', margin + 8, y);
-    y += lineHeight;
-  }
-
-  // Additional intervention notes
-  if (data.interventionNotes) {
-    y += 6;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Intervention notes:', margin, y);
-    y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    const iwrap = doc.splitTextToSize(data.interventionNotes, usableW);
-    doc.text(iwrap, margin, y);
-    y += iwrap.length * lineHeight + 8;
-    y = addPageIfNeeded(doc, y, margin);
-  }
-
-  // Progress
-  doc.setFont('helvetica', 'bold');
-  doc.text("Today's progress:", margin, y);
-  y += lineHeight;
-  doc.setFont('helvetica', 'normal');
-  const prow = doc.splitTextToSize(data.progress || '(none)', usableW);
-  doc.text(prow, margin, y);
-  y += prow.length * lineHeight + 8;
-
   // Total time and signature
   doc.setFont('helvetica', 'bold');
   doc.text('Total treatment time:', margin, y);
@@ -420,7 +299,7 @@ downloadBtn.addEventListener('click', async () => {
   doc.text(`Date: ${data.signDate || ''}`, margin + 300, y);
   y += lineHeight;
 
-  // page number optional
+  // page number
   if (data.pageNum) {
     doc.text(data.pageNum, margin, doc.internal.pageSize.getHeight() - margin);
   }
