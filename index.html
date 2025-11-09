@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OT Session Note — Sensabilities OT</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="card" role="main" aria-labelledby="title">
+            <header class="site-header">
+                <div class="logo-area">
+                    <!-- logo.png should be in same folder -->
+                    <img id="clinicLogo" src="logo.png" alt="Sensabilities OT logo" />
+                    <div class="clinic-text">
+                        <div class="clinic-name">Sensabilities Occupational Therapy</div>
+                        <div class="clinic-sub">Occupational Therapy Services</div>
+                    </div>
+                </div>
+
+                <div class="toolbar">
+                    <button id="setNameBtn" type="button">Set Patient Name (private)</button>
+                    <button id="clearNameBtn" class="ghost" type="button">Clear Name</button>
+                    <button id="downloadBtn" type="button">Download PDF</button>
+                </div>
+            </header>
+
+            <!-- hidden patient name stored in sessionStorage -->
+            <input id="patientNameHidden" type="hidden" />
+
+            <form id="noteForm" onsubmit="return false;">
+                <section class="grid top-row">
+                    <div>
+                        <label>Patient / Child (hidden)</label>
+                        <div class="muted">Set using the button — not visible on public page</div>
+                    </div>
+
+                    <div>
+                        <label for="dob">Date of Birth</label>
+                        <input id="dob" type="date" />
+                    </div>
+
+                    <div>
+                        <label for="age">Age</label>
+                        <input id="age" type="text" placeholder="e.g., 4y 3m" />
+                    </div>
+
+                    <div>
+                        <label for="diagnosis">Diagnosis</label>
+                        <input id="diagnosis" type="text" />
+                    </div>
+
+                    <div>
+                        <label for="dateService">Date of Service</label>
+                        <input id="dateService" type="date" />
+                    </div>
+
+                    <div>
+                        <label for="provider">Provider</label>
+                        <select id="provider">
+                            <option>Katherine J. Arambulo, OTR/L</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="sessionDuration">Session Duration</label>
+                        <select id="sessionDuration">
+                            <option value="">--</option>
+                            <option>15 minutes</option>
+                            <option>30 minutes</option>
+                            <option>45 minutes</option>
+                            <option>60 minutes</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="credentials">Credentials / License</label>
+                        <input id="credentials" type="text" value="NJ46TR00687300" />
+                    </div>
+
+                    <div>
+                        <label for="location">Location</label>
+                        <select id="location">
+                            <option>Clinic</option>
+                            <option>School</option>
+                            <option>Home</option>
+                            <option>Telehealth</option>
+                        </select>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <label class="muted">SUBJECTIVE</label>
+                    <textarea id="subjective"
+                        placeholder="Parent/caregiver report; child's mood upon arrival; changes in status"></textarea>
+                </section>
+
+                <section class="section">
+                    <label class="muted">OBJECTIVE</label>
+
+                    <!-- Four objective rows: each has CPT + unit dropdown + notes -->
+                    <div class="objective-rows">
+                        <!-- Row template (we create 4) -->
+                        <div class="objective-row">
+                            <div class="obj-header" style="background:#dbeafe">OBJECTIVE 1</div>
+                            <div class="obj-body">
+                                <div class="obj-controls">
+                                    <label>CPT code</label>
+                                    <select class="cptSelect">
+                                        <option value="">-- select CPT --</option>
+                                        <option value="97530">97530 — Therapeutic Activities</option>
+                                        <option value="97535">97535 — Self-care training</option>
+                                        <option value="97112">97112 — Neuromuscular re-education</option>
+                                        <option value="97110">97110 — Therapeutic Exercises</option>
+                                    </select>
+
+                                    <label>Units</label>
+                                    <select class="unitSelect">
+                                        <option value="">--</option>
+                                        <option value="1">x 1 unit (15 min)</option>
+                                        <option value="2">x 2 units (30 min)</option>
+                                        <option value="3">x 3 units (45 min)</option>
+                                        <option value="4">x 4 units (60 min)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label>Notes</label>
+                                    <textarea class="objNotes"
+                                        placeholder="Objective notes for this CPT / activity"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="objective-row">
+                            <div class="obj-header" style="background:#fde68a">OBJECTIVE 2</div>
+                            <div class="obj-body">
+                                <div class="obj-controls">
+                                    <label>CPT code</label>
+                                    <select class="cptSelect">
+                                        <option value="">-- select CPT --</option>
+                                        <option value="97530">97530 — Therapeutic Activities</option>
+                                        <option value="97535">97535 — Self-care training</option>
+                                        <option value="97112">97112 — Neuromuscular re-education</option>
+                                        <option value="97110">97110 — Therapeutic Exercises</option>
+                                    </select>
+
+                                    <label>Units</label>
+                                    <select class="unitSelect">
+                                        <option value="">--</option>
+                                        <option value="1">x 1 unit (15 min)</option>
+                                        <option value="2">x 2 units (30 min)</option>
+                                        <option value="3">x 3 units (45 min)</option>
+                                        <option value="4">x 4 units (60 min)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label>Notes</label>
+                                    <textarea class="objNotes"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="objective-row">
+                            <div class="obj-header" style="background:#bbf7d0">OBJECTIVE 3</div>
+                            <div class="obj-body">
+                                <div class="obj-controls">
+                                    <label>CPT code</label>
+                                    <select class="cptSelect">
+                                        <option value="">-- select CPT --</option>
+                                        <option value="97530">97530 — Therapeutic Activities</option>
+                                        <option value="97535">97535 — Self-care training</option>
+                                        <option value="97112">97112 — Neuromuscular re-education</option>
+                                        <option value="97110">97110 — Therapeutic Exercises</option>
+                                    </select>
+
+                                    <label>Units</label>
+                                    <select class="unitSelect">
+                                        <option value="">--</option>
+                                        <option value="1">x 1 unit (15 min)</option>
+                                        <option value="2">x 2 units (30 min)</option>
+                                        <option value="3">x 3 units (45 min)</option>
+                                        <option value="4">x 4 units (60 min)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label>Notes</label>
+                                    <textarea class="objNotes"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="objective-row">
+                            <div class="obj-header" style="background:#fee2e2">OBJECTIVE 4</div>
+                            <div class="obj-body">
+                                <div class="obj-controls">
+                                    <label>CPT code</label>
+                                    <select class="cptSelect">
+                                        <option value="">-- select CPT --</option>
+                                        <option value="97530">97530 — Therapeutic Activities</option>
+                                        <option value="97535">97535 — Self-care training</option>
+                                        <option value="97112">97112 — Neuromuscular re-education</option>
+                                        <option value="97110">97110 — Therapeutic Exercises</option>
+                                    </select>
+
+                                    <label>Units</label>
+                                    <select class="unitSelect">
+                                        <option value="">--</option>
+                                        <option value="1">x 1 unit (15 min)</option>
+                                        <option value="2">x 2 units (30 min)</option>
+                                        <option value="3">x 3 units (45 min)</option>
+                                        <option value="4">x 4 units (60 min)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label>Notes</label>
+                                    <textarea class="objNotes"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <label class="muted">ASSESSMENT</label>
+                    <textarea id="assessment"></textarea>
+                </section>
+
+                <section class="section">
+                    <label class="muted">PLAN</label>
+                    <textarea id="plan" placeholder="Plan, caregiver training, next steps"></textarea>
+
+                    <div class="plan-grid">
+                        <div>
+                            <label>ICD code 1</label>
+                            <select class="icdSelect">
+                                <option value="">--</option>
+                                <option value="F84.0">F84.0 — Autism Spectrum Disorder</option>
+                                <option value="F82">F82 — Specific developmental disorder of motor function</option>
+                                <option value="R27.9">R27.9 — Unspecified lack of coordination</option>
+                                <option value="Z74.1">Z74.1 — Need for assistance with personal care</option>
+                                <option value="Z73.4">Z73.4 — Inadequate social skills</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label>ICD code 2</label>
+                            <select class="icdSelect">
+                                <option value="">--</option>
+                                <option value="F84.0">F84.0 — Autism Spectrum Disorder</option>
+                                <option value="F82">F82 — Specific developmental disorder of motor function</option>
+                                <option value="R27.9">R27.9 — Unspecified lack of coordination</option>
+                                <option value="Z74.1">Z74.1 — Need for assistance with personal care</option>
+                                <option value="Z73.4">Z73.4 — Inadequate social skills</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label>ICD code 3</label>
+                            <select class="icdSelect">
+                                <option value="">--</option>
+                                <option value="F84.0">F84.0 — Autism Spectrum Disorder</option>
+                                <option value="F82">F82 — Specific developmental disorder of motor function</option>
+                                <option value="R27.9">R27.9 — Unspecified lack of coordination</option>
+                                <option value="Z74.1">Z74.1 — Need for assistance with personal care</option>
+                                <option value="Z73.4">Z73.4 — Inadequate social skills</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label>ICD code 4</label>
+                            <select class="icdSelect">
+                                <option value="">--</option>
+                                <option value="F84.0">F84.0 — Autism Spectrum Disorder</option>
+                                <option value="F82">F82 — Specific developmental disorder of motor function</option>
+                                <option value="R27.9">R27.9 — Unspecified lack of coordination</option>
+                                <option value="Z74.1">Z74.1 — Need for assistance with personal care</option>
+                                <option value="Z73.4">Z73.4 — Inadequate social skills</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <label class="muted">INTERVENTION TECHNIQUES (select as needed)</label>
+
+                    <div class="controls-row" style="margin-bottom:8px;">
+                        <button type="button" id="selectAllInterventions" class="ghost">Select all</button>
+                        <button type="button" id="clearAllInterventions" class="ghost">Clear all</button>
+                    </div>
+
+                    <div id="interventionCheckboxes" role="group" aria-label="Interventions">
+                        <!-- Interventions are populated by script.js -->
+                    </div>
+
+                    <div style="margin-top:8px">
+                        <label class="muted">Additional intervention notes</label>
+                        <textarea id="interventionNotes" placeholder="Optional notes"></textarea>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <label class="muted">TODAY'S PROGRESS</label>
+                    <textarea id="progress"></textarea>
+                </section>
+
+                <section class="grid bottom-grid">
+                    <div>
+                        <label for="totalTime">Total treatment time</label>
+                        <select id="totalTime">
+                            <option value="">--</option>
+                            <option>15 minutes</option>
+                            <option>30 minutes</option>
+                            <option>45 minutes</option>
+                            <option>60 minutes</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="signature">Provider signature (type name)</label>
+                        <input id="signature" type="text" />
+                    </div>
+
+                    <div>
+                        <label for="signDate">Signature date</label>
+                        <input id="signDate" type="date" />
+                    </div>
+
+                    <div>
+                        <label for="pageNum">Page (optional)</label>
+                        <input id="pageNum" type="text" placeholder="Page 1 of 2" />
+                    </div>
+                </section>
+
+                <footer class="form-footer">
+                    <div class="muted">Tip: patient name saved only in this browser session and embedded in downloaded
+                        PDF.</div>
+                    <div>
+                        <button id="previewBtn" class="ghost" type="button">Preview (console)</button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="script.js"></script>
+</body>
+
+</html>
