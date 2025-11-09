@@ -217,22 +217,23 @@ downloadBtn.addEventListener('click', async () => {
   y += wrapped.length * lineHeight + 8;
   y = addPageIfNeeded(doc, y, margin);
 
-  // OBJECTIVE
+  // OBJECTIVE: each objective row with CPT + units + notes
   doc.setFont('helvetica', 'bold');
   doc.text('OBJECTIVE', margin, y);
   y += lineHeight;
 
   for (let i = 0; i < data.objectives.length; i++) {
     const row = data.objectives[i];
-    if (!row.cpt && !row.notes) continue;
+    if (!row.cpt && !row.notes) continue; // skip blank rows
 
+    // colored mini-header for each objective
     doc.setFillColor(240, 240, 240);
-    doc.rect(margin, y - 6, usableW, 18, 'F');
+    doc.rect(margin, y - 6, usableW, 18, 'F'); // light block as separator
     doc.setFont('helvetica', 'bold');
     doc.text(`Objective ${i + 1}`, margin + 4, y + 6);
     y += 20;
 
-    // CPT and Units on the same line
+    // CPT and Units side by side
     doc.setFont('helvetica', 'bold');
     doc.text('CPT:', margin, y);
     doc.setFont('helvetica', 'normal');
@@ -242,10 +243,9 @@ downloadBtn.addEventListener('click', async () => {
     doc.text('Units:', margin + 120, y);
     doc.setFont('helvetica', 'normal');
     doc.text(row.unit ? `x ${row.unit} unit(s)` : '( )', margin + 170, y);
-
     y += lineHeight;
 
-    // Notes
+    // notes below CPT + Units
     doc.setFont('helvetica', 'normal');
     const noteWrapped = doc.splitTextToSize(
       row.notes || '(no notes)',
