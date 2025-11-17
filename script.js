@@ -27,8 +27,76 @@ document.addEventListener('DOMContentLoaded', () => {
     return y;
   }
 
+  /* ---------------------------------------------------------
+     DYNAMIC CPT BILLING SECTION (BASED ON OBJECTIVE CPTs)
+  --------------------------------------------------------- */
+
+  function updateCptBillingSection() {
+    const objectiveRows = document.querySelectorAll('.objective-row');
+    const usedCptCodes = new Set();
+
+    // Collect selected CPTs from objectives
+    objectiveRows.forEach((row) => {
+      const cpt = row.querySelector('.cptSelect')?.value;
+      if (cpt) usedCptCodes.add(cpt);
+    });
+
+    const sectionDiv = document.getElementById('autoCptSection');
+    sectionDiv.innerHTML = ''; // clear old
+
+    if (usedCptCodes.size === 0) {
+      sectionDiv.innerHTML = `<div class="muted">(no CPT codes selected above)</div>`;
+      return;
+    }
+
+    usedCptCodes.forEach((cpt) => {
+      const desc = CPT_DESCRIPTIONS[cpt] || '(desc not found)';
+
+      const html = `
+        <div class="cpt-row">
+          <label>${cpt} — ${desc}</label>
+
+          <select class="unitSelect">
+            <option value="">-- units --</option>
+            <option value="1">1 unit</option>
+            <option value="2">2 units</option>
+            <option value="3">3 units</option>
+            <option value="4">4 units</option>
+          </select>
+
+          <span class="unitMinutes">= 0 minutes</span>
+        </div>
+      `;
+
+      sectionDiv.insertAdjacentHTML('beforeend', html);
+    });
+
+    // Add listeners for unit → minutes auto calculation
+    sectionDiv.querySelectorAll('.unitSelect').forEach((select) => {
+      select.addEventListener('change', (e) => {
+        const units = Number(e.target.value);
+        const minutes = units ? units * 15 : 0;
+
+        const minutesSpan = e.target
+          .closest('.cpt-row')
+          .querySelector('.unitMinutes');
+        minutesSpan.textContent = `= ${minutes} minutes`;
+      });
+    });
+  }
+
+  // Trigger update whenever Objective CPT changes
+  document
+    .querySelectorAll('.objective-row .cptSelect')
+    .forEach((sel) => sel.addEventListener('change', updateCptBillingSection));
+
+  updateCptBillingSection(); // initial load
+
+  /* ---------------------------------------------------------
+     PDF GENERATION
+  --------------------------------------------------------- */
+
   downloadBtn.addEventListener('click', async () => {
-    // Prompt for patient name
     const patientName =
       prompt('Enter patient name for PDF (not stored online):', '')?.trim() ||
       'No Name';
@@ -37,10 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const margin = 40;
     let y = margin;
     const lineHeight = 14;
-    const sectionSpacing = 10; // extra space between sections
+    const sectionSpacing = 10;
     const usableWidth = doc.internal.pageSize.getWidth() - margin * 2;
 
-    // Allows wrapped text to continue onto new pages automatically
     function writeWrapped(doc, textArray, x, y, margin, lineHeight) {
       textArray.forEach((line) => {
         y = addPageIfNeeded(doc, y, margin, lineHeight);
@@ -50,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return y;
     }
 
-    // Collect form values
+    // Collect form fields
     const dob = document.getElementById('dob')?.value || '';
     const age = document.getElementById('age')?.value || '';
     const diagnosis = document.getElementById('diagnosis')?.value || '';
@@ -67,20 +134,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const signature = document.getElementById('signature')?.value || '';
     const signDate = document.getElementById('signDate')?.value || '';
 
-    // ICD Codes
+    // ICD codes
     const icdSelects = document.querySelectorAll('.icdSelect');
     const icdCodes = Array.from(icdSelects)
       .map((s) => s.value)
       .filter((v) => v);
 
-    // CPT from Objectives
+    // Objective CPTs
     const objectiveRows = document.querySelectorAll('.objective-row');
     const objectives = Array.from(objectiveRows).map((row) => ({
       cpt: row.querySelector('.cptSelect')?.value || '',
       notes: row.querySelector('.objNotes')?.value || '',
     }));
 
-    // --- HEADER ---
+    /* ---------- HEADER ---------- */
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text('Sensabilities Occupational Therapy', margin, y);
@@ -89,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     doc.text('OT Session Note', margin, y + 14);
     y += 36;
 
-    // --- PATIENT INFO ---
+    /* ---------- PATIENT INFO ---------- */
     const infoPairs = [
       ['Patient:', patientName],
       ['DOB:', dob],
@@ -112,71 +179,89 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     y += sectionSpacing;
 
-    // --- SUBJECTIVE ---
+    /* ---------- SUBJECTIVE ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('SUBJECTIVE', margin, y);
     y += lineHeight;
+
     doc.setFont('helvetica', 'normal');
-    const subjWrapped = doc.splitTextToSize(
-      subjective || '(none)',
-      usableWidth
+    y = writeWrapped(
+      doc,
+      doc.splitTextToSize(subjective || '(none)', usableWidth),
+      margin,
+      y,
+      margin,
+      lineHeight
     );
-    y = writeWrapped(doc, subjWrapped, margin, y, margin, lineHeight);
     y += sectionSpacing;
 
-    // --- OBJECTIVE ---
+    /* ---------- OBJECTIVE ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('OBJECTIVE', margin, y);
     y += lineHeight;
+
     const colors = ['#dbeafe', '#fde68a', '#bbf7d0', '#fee2e2'];
 
     objectives.forEach((row, i) => {
       if (!row.cpt && !row.notes) return;
 
-      // colored box for visual separation
       doc.setFillColor(colors[i % colors.length]);
       doc.rect(margin - 5, y - 10, usableWidth + 10, 18, 'F');
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
 
       const cptKey = Number(row.cpt);
       const cptDesc = CPT_DESCRIPTIONS[cptKey] || '(desc not found)';
+
       doc.text(row.cpt ? `${row.cpt}: ${cptDesc}` : '(no CPT)', margin + 10, y);
       y += lineHeight;
 
-      const notesWrapped = doc.splitTextToSize(
-        row.notes || '(no notes)',
-        usableWidth - 20
+      y = writeWrapped(
+        doc,
+        doc.splitTextToSize(row.notes || '(no notes)', usableWidth - 20),
+        margin + 10,
+        y,
+        margin,
+        lineHeight
       );
-      y = writeWrapped(doc, notesWrapped, margin + 10, y, margin, lineHeight);
       y += sectionSpacing;
     });
 
-    // --- ASSESSMENT ---
+    /* ---------- ASSESSMENT ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('ASSESSMENT', margin, y);
     y += lineHeight;
+
     doc.setFont('helvetica', 'normal');
-    const assessWrapped = doc.splitTextToSize(
-      assessment || '(none)',
-      usableWidth
+    y = writeWrapped(
+      doc,
+      doc.splitTextToSize(assessment || '(none)', usableWidth),
+      margin,
+      y,
+      margin,
+      lineHeight
     );
-    y = writeWrapped(doc, assessWrapped, margin, y, margin, lineHeight);
     y += sectionSpacing;
 
-    // --- PLAN ---
+    /* ---------- PLAN ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('PLAN', margin, y);
     y += lineHeight;
+
     doc.setFont('helvetica', 'normal');
-    const planWrapped = doc.splitTextToSize(plan || '(none)', usableWidth);
-    y = writeWrapped(doc, planWrapped, margin, y, margin, lineHeight);
+    y = writeWrapped(
+      doc,
+      doc.splitTextToSize(plan || '(none)', usableWidth),
+      margin,
+      y,
+      margin,
+      lineHeight
+    );
     y += sectionSpacing;
 
-    // --- ICD CODES ---
+    /* ---------- ICD CODES ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('ICD CODES:', margin, y);
     y += lineHeight;
+
     doc.setFont('helvetica', 'normal');
     if (icdCodes.length) {
       icdCodes.forEach((code) => {
@@ -202,19 +287,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     y += sectionSpacing;
 
-    // --- CPT CODES ---
+    /* ---------- CPT BILLING (DYNAMIC) ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('CPT CODES:', margin, y);
     y += lineHeight;
-    doc.setFont('helvetica', 'normal');
-    if (objectives.some((o) => o.cpt)) {
-      objectives.forEach((row) => {
-        if (!row.cpt) return;
-        const cptKey = Number(row.cpt);
-        const desc = CPT_DESCRIPTIONS[cptKey] || '(desc not found)';
-        const unitsText = row.unit ? `x${row.unit} unit(s)` : '(no units)';
 
-        const line = `- ${row.cpt}: ${desc} | ${unitsText}`;
+    doc.setFont('helvetica', 'normal');
+
+    const billingRows = document.querySelectorAll('#autoCptSection .cpt-row');
+
+    if (billingRows.length) {
+      billingRows.forEach((row) => {
+        const labelText = row.querySelector('label').textContent;
+        const cptValue = labelText.split(' ')[0];
+        const unitsValue = row.querySelector('.unitSelect')?.value;
+
+        const cptKey = Number(cptValue);
+        const desc = CPT_DESCRIPTIONS[cptKey] || '(desc not found)';
+
+        const minutes = unitsValue ? unitsValue * 15 : 0;
+        const unitsText = unitsValue
+          ? `x ${unitsValue} unit(s) = ${minutes} min`
+          : '(no units selected)';
+
+        const line = `- ${cptKey}: ${desc} | ${unitsText}`;
         y = writeWrapped(doc, [line], margin + 10, y, margin, lineHeight);
       });
     } else {
@@ -227,31 +323,31 @@ document.addEventListener('DOMContentLoaded', () => {
         lineHeight
       );
     }
+
     y += sectionSpacing;
 
-    // --- TOTAL & SIGNATURE ---
+    /* ---------- SIGNATURE ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('Total treatment time:', margin, y);
-    doc.setFont('helvetica', 'normal');
-    // Place the value closer to the label
-    doc.text(totalTime || '(not set)', margin + 95, y);
-    y += lineHeight + 8; // small vertical space before signature
 
-    // Provider signature and date in bold
+    doc.setFont('helvetica', 'normal');
+    doc.text(totalTime || '(not set)', margin + 95, y);
+    y += lineHeight + 8;
+
     doc.setFont('helvetica', 'bold');
     doc.text('Provider signature:', margin, y);
-    doc.text('Date:', margin + 300, y);
+    doc.text('Date:', margin + 280, y);
 
-    // Signature values in normal font, placed close to labels
     doc.setFont('helvetica', 'normal');
-    doc.text(signature || '', margin + 95, y);
-    doc.text(signDate || '', margin + 330, y);
+    doc.text(signature || '', margin + 90, y);
+    doc.text(signDate || '', margin + 310, y);
 
-    // --- SAVE PDF ---
+    /* ---------- SAVE PDF ---------- */
     const safeName = patientName.replace(/[^a-z0-9_\-]/gi, '_');
     const fileName = `OT_session_${safeName}_${
       new Date().toISOString().split('T')[0]
     }.pdf`;
+
     doc.save(fileName);
   });
 });
