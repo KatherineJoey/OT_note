@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     97535: 'Self-care training',
     97112: 'Neuromuscular re-education',
     97110: 'Therapeutic Exercises',
+    97130: 'Cognitive Function Interventions',
   };
 
   function addPageIfNeeded(doc, y, margin, lineHeight = 14) {
@@ -38,6 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const lineHeight = 14;
     const sectionSpacing = 10; // extra space between sections
     const usableWidth = doc.internal.pageSize.getWidth() - margin * 2;
+
+    // Allows wrapped text to continue onto new pages automatically
+    function writeWrapped(doc, textArray, x, y, margin, lineHeight) {
+      textArray.forEach((line) => {
+        y = addPageIfNeeded(doc, y, margin, lineHeight);
+        doc.text(line, x, y);
+        y += lineHeight;
+      });
+      return y;
+    }
 
     // Collect form values
     const dob = document.getElementById('dob')?.value || '';
@@ -66,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const objectiveRows = document.querySelectorAll('.objective-row');
     const objectives = Array.from(objectiveRows).map((row) => ({
       cpt: row.querySelector('.cptSelect')?.value || '',
-      unit: row.querySelector('.unitSelect')?.value || '',
       notes: row.querySelector('.objNotes')?.value || '',
     }));
 
@@ -111,9 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
       subjective || '(none)',
       usableWidth
     );
-    doc.text(subjWrapped, margin, y);
-    y += subjWrapped.length * lineHeight + sectionSpacing;
-    y = addPageIfNeeded(doc, y, margin);
+    y = writeWrapped(doc, subjWrapped, margin, y, margin, lineHeight);
+    y += sectionSpacing;
 
     // --- OBJECTIVE ---
     doc.setFont('helvetica', 'bold');
@@ -135,18 +144,12 @@ document.addEventListener('DOMContentLoaded', () => {
       doc.text(row.cpt ? `${row.cpt}: ${cptDesc}` : '(no CPT)', margin + 10, y);
       y += lineHeight;
 
-      const unitsText = row.unit ? `x${row.unit} unit(s)` : '(no units)';
-      doc.text(`Units: ${unitsText}`, margin + 10, y);
-      y += lineHeight;
-
       const notesWrapped = doc.splitTextToSize(
         row.notes || '(no notes)',
         usableWidth - 20
       );
-      doc.text(notesWrapped, margin + 10, y);
-      y += notesWrapped.length * lineHeight + sectionSpacing;
-
-      y = addPageIfNeeded(doc, y, margin);
+      y = writeWrapped(doc, notesWrapped, margin + 10, y, margin, lineHeight);
+      y += sectionSpacing;
     });
 
     // --- ASSESSMENT ---
@@ -158,8 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
       assessment || '(none)',
       usableWidth
     );
-    doc.text(assessWrapped, margin, y);
-    y += assessWrapped.length * lineHeight + sectionSpacing;
+    y = writeWrapped(doc, assessWrapped, margin, y, margin, lineHeight);
+    y += sectionSpacing;
 
     // --- PLAN ---
     doc.setFont('helvetica', 'bold');
@@ -167,8 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
     y += lineHeight;
     doc.setFont('helvetica', 'normal');
     const planWrapped = doc.splitTextToSize(plan || '(none)', usableWidth);
-    doc.text(planWrapped, margin, y);
-    y += planWrapped.length * lineHeight + sectionSpacing;
+    y = writeWrapped(doc, planWrapped, margin, y, margin, lineHeight);
+    y += sectionSpacing;
 
     // --- ICD CODES ---
     doc.setFont('helvetica', 'bold');
@@ -178,12 +181,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (icdCodes.length) {
       icdCodes.forEach((code) => {
         const desc = ICD_DESCRIPTIONS[code] || '(desc not found)';
-        doc.text(`- ${code}: ${desc}`, margin + 10, y);
-        y += lineHeight;
+        y = writeWrapped(
+          doc,
+          [`- ${code}: ${desc}`],
+          margin + 10,
+          y,
+          margin,
+          lineHeight
+        );
       });
     } else {
-      doc.text('(none selected)', margin + 10, y);
-      y += lineHeight;
+      y = writeWrapped(
+        doc,
+        ['(none selected)'],
+        margin + 10,
+        y,
+        margin,
+        lineHeight
+      );
     }
     y += sectionSpacing;
 
@@ -198,12 +213,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const cptKey = Number(row.cpt);
         const desc = CPT_DESCRIPTIONS[cptKey] || '(desc not found)';
         const unitsText = row.unit ? `x${row.unit} unit(s)` : '(no units)';
-        doc.text(`- ${row.cpt}: ${desc} | ${unitsText}`, margin + 10, y);
-        y += lineHeight;
+
+        const line = `- ${row.cpt}: ${desc} | ${unitsText}`;
+        y = writeWrapped(doc, [line], margin + 10, y, margin, lineHeight);
       });
     } else {
-      doc.text('(none selected)', margin + 10, y);
-      y += lineHeight;
+      y = writeWrapped(
+        doc,
+        ['(none selected)'],
+        margin + 10,
+        y,
+        margin,
+        lineHeight
+      );
     }
     y += sectionSpacing;
 
