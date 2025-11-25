@@ -216,8 +216,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const cptKey = Number(row.cpt);
       const cptDesc = CPT_DESCRIPTIONS[cptKey] || '(desc not found)';
 
+      // CPT line stays bold
+      doc.setFont('helvetica', 'bold');
       doc.text(row.cpt ? `${row.cpt}: ${cptDesc}` : '(no CPT)', margin + 10, y);
       y += lineHeight;
+
+      // FIX: set notes to normal weight before wrapping text
+      doc.setFont('helvetica', 'normal');
 
       y = writeWrapped(
         doc,
