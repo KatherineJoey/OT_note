@@ -127,6 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sessionDuration =
       document.getElementById('sessionDuration')?.value || '';
     const location = document.getElementById('location')?.value || '';
+    const startTime = document.getElementById('startTime')?.value || '';
+    const endTime = document.getElementById('endTime')?.value || '';
+
     const subjective = document.getElementById('subjective')?.value || '';
     const assessment = document.getElementById('assessment')?.value || '';
     const plan = document.getElementById('plan')?.value || '';
@@ -163,6 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Age:', age],
       ['Diagnosis:', diagnosis],
       ['Date of Service:', dateService],
+      ['Start Time:', startTime],
+      ['End Time:', endTime],
       ['Session Duration:', sessionDuration],
       ['Provider:', provider],
       ['Credentials:', credentials],
