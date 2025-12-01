@@ -6,8 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     'F84.0': 'Autism Spectrum Disorder',
     'F82.0': 'Specific developmental disorder of motor function',
     'R27.9': 'Unspecified lack of coordination',
+    'R41.840': 'Attention and Concentration Deficit',
+    'F88.0': 'Developmental Disorder',
+    'M62.89': 'Generalized Hypotonia',
+    'M62.830': 'Low Muscle Tone',
     'Z74.1': 'Need for assistance with personal care',
     'Z73.4': 'Inadequate social skills',
+    'R41.843': 'Perceptual Motor Deficit',
   };
 
   const CPT_DESCRIPTIONS = {
@@ -15,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     97535: 'Self-care training',
     97112: 'Neuromuscular re-education',
     97110: 'Therapeutic Exercises',
-    97130: 'Cognitive Function Interventions',
+    97129: 'Cognitive Function Interventions',
   };
 
   function addPageIfNeeded(doc, y, margin, lineHeight = 14) {
