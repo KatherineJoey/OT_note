@@ -341,21 +341,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     y += sectionSpacing;
 
-    /* ---------- SIGNATURE ---------- */
+    /* ---------- SIGNATURES ---------- */
     doc.setFont('helvetica', 'bold');
     doc.text('Total treatment time:', margin, y);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(totalTime || '(not set)', margin + 95, y);
-    y += lineHeight + 8;
+    doc.text(totalTime || '(not set)', margin + 110, y);
+    y += lineHeight + 12;
 
+    /* Provider Signature */
     doc.setFont('helvetica', 'bold');
     doc.text('Provider signature:', margin, y);
-    doc.text('Date:', margin + 280, y);
+    doc.text('Date:', margin + 300, y);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(signature || '', margin + 90, y);
-    doc.text(signDate || '', margin + 310, y);
+    doc.text(signature || '', margin + 120, y);
+    doc.text(signDate || '', margin + 330, y);
+
+    y += lineHeight + 14;
+
+    /* Parent / Guardian Signature */
+    doc.setFont('helvetica', 'bold');
+    doc.text('Parent / Guardian signature:', margin, y);
+    doc.text('Date:', margin + 300, y);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text('(signed)', margin + 180, y); // placeholder or leave blank
+    doc.text('', margin + 330, y);
 
     /* ---------- SAVE PDF ---------- */
     const safeName = patientName.replace(/[^a-z0-9_\-]/gi, '_');
