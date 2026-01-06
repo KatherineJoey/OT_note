@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
     doc.text(signature || '', margin + 120, y);
     doc.text(signDate || '', margin + 330, y);
 
-    y += lineHeight + 14;
+    y += lineHeight + 20;
 
     /* Parent / Guardian Signature */
     doc.setFont('helvetica', 'bold');
@@ -366,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
     doc.text('Date:', margin + 300, y);
 
     doc.setFont('helvetica', 'normal');
-    doc.text('(signed)', margin + 180, y); // placeholder or leave blank
     doc.text('', margin + 330, y);
 
     /* ---------- SAVE PDF ---------- */
